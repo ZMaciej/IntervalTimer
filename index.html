@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Interval Timer</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="setup-view" class="view">
+    <h1>Czasomierz</h1>
+    <form id="setup-form">
+      <div class="fields">
+        <label>Godz. <input id="hours" type="number" min="0" max="99" value="0" inputmode="numeric"></label>
+        <label>Min. <input id="minutes" type="number" min="0" max="59" value="5" inputmode="numeric"></label>
+        <label>Sek. <input id="seconds" type="number" min="0" max="59" value="0" inputmode="numeric"></label>
+      </div>
+      <p id="error" role="alert"></p>
+      <button type="submit">Start</button>
+    </form>
+  </main>
+
+  <main id="timer-view" class="view" hidden>
+    <div id="progress"></div>
+    <div id="clock">00:00</div>
+    <div class="controls">
+      <button id="pause" type="button">Pauza</button>
+      <button id="back" type="button">Ustawienia</button>
+    </div>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
