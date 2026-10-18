@@ -83,7 +83,7 @@
   } catch (e) {
     try { plan = JSON.parse(localStorage.getItem('plan')) || []; } catch (e2) { plan = []; }
   }
-  if (!Array.isArray(plan) || !plan.length) plan = [{ type: 'stage', ...stage('Stage 1') }];
+  if (!Array.isArray(plan) || !plan.length) plan = [{ type: 'stage', ...stage('Step 1') }];
   const save = () => {
     try { localStorage.setItem('plan', JSON.stringify(plan)); } catch (e) { /* ignore */ }
     try { history.replaceState(null, '', '?' + encodePlan(plan)); } catch (e) { /* ignore */ }
@@ -171,13 +171,17 @@
   document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeSwatches(); });
 
   function stageRow(st, onRemove) {
-    const name = el('input', { className: 'name', type: 'text', placeholder: 'Stage name', value: st.name });
+    const name = el('input', { className: 'name', type: 'text', placeholder: 'Step name', value: st.name });
     name.addEventListener('input', () => { st.name = name.value; save(); });
     const time = el('input', { className: 'time', type: 'text', inputMode: 'numeric', autocomplete: 'off', maxLength: 9, value: formatDigits(st.digits) });
-    time.addEventListener('input', () => { st.digits = digits(time.value); time.value = formatDigits(st.digits); save(); });
+    const unit = el('span', { className: 'unit' });
+    const setUnit = () => { unit.textContent = st.digits.length <= 2 ? 's' : st.digits.length <= 4 ? 'min' : 'h'; };
+    time.addEventListener('input', () => { st.digits = digits(time.value); time.value = formatDigits(st.digits); setUnit(); save(); });
+    setUnit();
+    const timeWrap = el('span', { className: 'time-wrap', title: 'Type digits: 50 = 50 s, 500 = 5:00 min, 50000 = 5:00:00 h' }, time, unit);
     time.addEventListener('focus', () => time.select());
     const cur = () => (st.color || DEFAULT_COLOR).toLowerCase();
-    const toggle = el('button', { type: 'button', className: 'swatch current', title: 'Stage color' });
+    const toggle = el('button', { type: 'button', className: 'swatch current', title: 'Step color' });
     toggle.style.background = cur();
     const swatches = el('div', { className: 'swatches', hidden: true });
     const mark = () => {
@@ -207,7 +211,7 @@
       swatches.style.top = Math.max(4, Math.min(e.clientY, innerHeight - h - 4)) + 'px';
     });
     mark();
-    const row = el('div', { className: 'row' }, handle(() => row), name, time, toggle, btn('✕', onRemove, 'icon', 'Remove'), swatches);
+    const row = el('div', { className: 'row' }, handle(() => row), name, timeWrap, toggle, btn('✕', onRemove, 'icon', 'Remove'), swatches);
     row._ref = st;
     return row;
   }
@@ -220,12 +224,12 @@
       if (item.type === 'stage') { root.append(stageRow(item, remove)); return; }
       const reps = el('input', { className: 'repeats', type: 'number', min: 1, max: 999, value: item.repeats });
       reps.addEventListener('input', () => { item.repeats = Math.max(1, parseInt(reps.value, 10) || 1); save(); });
-      const head = el('div', { className: 'group-head' }, handle(() => group), 'Group ×', reps, el('span', { className: 'spacer' }),
-        btn('✕', remove, 'icon', 'Remove group'));
+      const head = el('div', { className: 'group-head' }, handle(() => group), 'Repeat ×', reps, el('span', { className: 'spacer' }),
+        btn('✕', remove, 'icon', 'Remove repeat'));
       const body = el('div', { className: 'group-body' });
       item.stages.forEach((st, k) => body.append(stageRow(st,
         () => { item.stages.splice(k, 1); renderPlan(); })));
-      body.append(el('div', { className: 'add-row' }, btn('+ Stage in group', () => { item.stages.push(stage('Stage')); renderPlan(); }, 'secondary')));
+      body.append(el('div', { className: 'add-row' }, btn('+ Step', () => { item.stages.push(stage('Step')); renderPlan(); }, 'secondary')));
       const group = el('div', { className: 'group' }, head, body);
       group._ref = item;
       root.append(group);
@@ -233,7 +237,7 @@
     save();
   }
 
-  $('add-stage').addEventListener('click', () => { plan.push({ type: 'stage', ...stage('Stage ' + (plan.length + 1)) }); renderPlan(); });
+  $('add-stage').addEventListener('click', () => { plan.push({ type: 'stage', ...stage('Step ' + (plan.length + 1)) }); renderPlan(); });
   $('add-group').addEventListener('click', () => { plan.push({ type: 'group', repeats: 1, stages: [] }); renderPlan(); });
   renderPlan();
 
@@ -242,7 +246,7 @@
     const add = (st, label) => { const secs = toSecs(st.digits); if (secs > 0) out.push({ name: st.name, secs, label, color: st.color || DEFAULT_COLOR }); };
     plan.forEach((item) => {
       if (item.type === 'stage') { add(item, ''); return; }
-      for (let r = 1; r <= item.repeats; r++) item.stages.forEach((st) => add(st, `Group ${r}/${item.repeats}`));
+      for (let r = 1; r <= item.repeats; r++) item.stages.forEach((st) => add(st, `Repeat ${r}/${item.repeats}`));
     });
     return out;
   }
@@ -357,7 +361,7 @@
   $('setup-form').addEventListener('submit', (e) => {
     e.preventDefault();
     seq = flatten();
-    if (!seq.length) { $('error').textContent = 'Add a stage with a time greater than zero.'; return; }
+    if (!seq.length) { $('error').textContent = 'Add a step with a time greater than zero.'; return; }
     $('error').textContent = '';
     idx = 0; loadStage();
     show(true); render(); play();

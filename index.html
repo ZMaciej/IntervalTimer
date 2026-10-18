@@ -9,15 +9,15 @@
 </head>
 <body>
   <main id="setup-view" class="view">
-    <h1>Interval Timer</h1>
+    <h1 id="setup-title">Timer setup</h1>
     <form id="setup-form">
       <div id="plan"></div>
       <div class="add-row">
-        <button id="add-stage" type="button" class="secondary">+ Stage</button>
-        <button id="add-group" type="button" class="secondary">+ Group</button>
+        <button id="add-stage" type="button" class="secondary">+ Step</button>
+        <button id="add-group" type="button" class="secondary" title="Add a block of steps that repeats">+ Repeat</button>
       </div>
       <p id="error" role="alert"></p>
-      <button type="submit" class="start" aria-label="Start" title="Start"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+      <button type="submit" class="start" aria-label="Start timer" title="Start timer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
     </form>
   </main>
 
