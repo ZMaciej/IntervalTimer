@@ -1,19 +1,20 @@
 <!DOCTYPE html>
-<html lang="pl">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2e7d32">
   <title>Interval Timer</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <main id="setup-view" class="view">
-    <h1>Czasomierz</h1>
+    <h1>Interval Timer</h1>
     <form id="setup-form">
-      <div class="fields">
-        <label>Godz. <input id="hours" type="number" min="0" max="99" value="0" inputmode="numeric"></label>
-        <label>Min. <input id="minutes" type="number" min="0" max="59" value="5" inputmode="numeric"></label>
-        <label>Sek. <input id="seconds" type="number" min="0" max="59" value="0" inputmode="numeric"></label>
+      <div id="plan"></div>
+      <div class="add-row">
+        <button id="add-stage" type="button" class="secondary">+ Stage</button>
+        <button id="add-group" type="button" class="secondary">+ Group</button>
       </div>
       <p id="error" role="alert"></p>
       <button type="submit">Start</button>
@@ -21,11 +22,16 @@
   </main>
 
   <main id="timer-view" class="view" hidden>
+    <div id="overall"><div id="overall-fill"></div></div>
     <div id="progress"></div>
+    <div id="stage-head">
+      <div id="stage-name"></div>
+      <div id="stage-info"></div>
+    </div>
     <div id="clock">00:00</div>
     <div class="controls">
-      <button id="pause" type="button">Pauza</button>
-      <button id="back" type="button">Ustawienia</button>
+      <button id="pause" type="button" aria-label="Pause" title="Pause"></button>
+      <button id="back" type="button" aria-label="Stop and return to settings" title="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
     </div>
   </main>
   <script src="app.js"></script>
