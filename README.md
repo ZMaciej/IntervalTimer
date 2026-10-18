@@ -28,3 +28,7 @@ Just type digits and the time formats itself:
 - The screen stays on while the timer is running.
 
 Your plan is saved in the browser, so it will be there next time you open the app.
+
+## Sharing a plan
+
+The plan is stored in the page address (everything after the `?`) and updates as you edit. Copy the link to save or share it, or bookmark it. Opening such a link loads that plan.

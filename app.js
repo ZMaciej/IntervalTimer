@@ -29,12 +29,65 @@
   }
 
   const DEFAULT_COLOR = '#4caf50';
-  const PRESETS = ['#4caf50', '#e53935', '#fb8c00', '#fdd835', '#1e88e5', '#8e24aa', '#546e7a', '#00acc1'];
+  const PRESETS = ['#4caf50', '#e53935', '#1e88e5', '#fdd835', '#8e24aa', '#fb8c00', '#263238', '#795548'];
   const stage = (name = '', dg = '500', color = DEFAULT_COLOR) => ({ name, digits: dg, color });
+  // Plan <-> URL ("?" + "v<version>~" + body). Version 1 body: stages "name_time_color" joined by ".", groups "N(stage.stage)".
+  // Color is a preset index (omitted for the default) or 6 hex digits. Names are percent-encoded,
+  // including the separator characters, so the raw query can be split before decoding.
+  const esc = (s) => encodeURIComponent(s).replace(/[.!~*'()_]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
+  function encStage(s) {
+    const pi = PRESETS.indexOf((s.color || DEFAULT_COLOR).toLowerCase());
+    const col = pi === 0 ? '' : pi > 0 ? String(pi) : s.color.replace('#', '');
+    return [esc(s.name), s.digits, col].join('_').replace(/_+$/, '');
+  }
+  const encodePlanV1 = (p) => p.map((i) => (i.type === 'group' ? `${i.repeats}(${i.stages.map(encStage).join('.')})` : encStage(i))).join('.');
+  const URL_VERSION = 1;
+  const encodePlan = (p) => `v${URL_VERSION}~${encodePlanV1(p)}`;
+
+  function splitTop(str) {
+    const out = [];
+    let depth = 0, cur = '';
+    for (const ch of str) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth--;
+      if (ch === '.' && depth === 0) { out.push(cur); cur = ''; } else cur += ch;
+    }
+    out.push(cur);
+    return out;
+  }
+  function decStage(str) {
+    const [n = '', d = '', c = ''] = str.split('_');
+    const color = /^[0-9a-f]{6}$/i.test(c) ? '#' + c.toLowerCase() : PRESETS[+c] || DEFAULT_COLOR;
+    return stage(decodeURIComponent(n).slice(0, 100), digits(d), color);
+  }
+  const DECODERS = { 1: decodePlanV1 };
+  function decodePlan(query) {
+    const m = query.match(/^v(\d+)~(.*)$/);
+    const decoder = m && DECODERS[+m[1]];
+    if (!decoder) throw new Error('unknown version');
+    return decoder(m[2]);
+  }
+  function decodePlanV1(str) {
+    if (!str) throw new Error('empty');
+    return splitTop(str).map((tok) => {
+      const g = tok.match(/^(\d+)\((.*)\)$/);
+      if (!g) return { type: 'stage', ...decStage(tok) };
+      return { type: 'group', repeats: Math.min(999, Math.max(1, +g[1])), stages: g[2] ? g[2].split('.').map(decStage) : [] };
+    });
+  }
+
   let plan = [];
-  try { plan = JSON.parse(localStorage.getItem('plan')) || []; } catch (e) { plan = []; }
+  try {
+    const m = location.search.match(/^\?(.*)$/);
+    plan = m && m[1] ? decodePlan(m[1]) : JSON.parse(localStorage.getItem('plan')) || [];
+  } catch (e) {
+    try { plan = JSON.parse(localStorage.getItem('plan')) || []; } catch (e2) { plan = []; }
+  }
   if (!Array.isArray(plan) || !plan.length) plan = [{ type: 'stage', ...stage('Stage 1') }];
-  const save = () => { try { localStorage.setItem('plan', JSON.stringify(plan)); } catch (e) { /* ignore */ } };
+  const save = () => {
+    try { localStorage.setItem('plan', JSON.stringify(plan)); } catch (e) { /* ignore */ }
+    try { history.replaceState(null, '', '?' + encodePlan(plan)); } catch (e) { /* ignore */ }
+  };
 
   function el(tag, props = {}, ...kids) {
     const n = Object.assign(document.createElement(tag), props);
