@@ -1,8 +1,9 @@
 * { box-sizing: border-box; }
+:root { --setup-theme-color: #272727; }
 html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; background: #4caf50; color: #fff; }
 [hidden] { display: none !important; }
 .view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-#setup-view { background: #2e7d32; gap: 1rem; justify-content: flex-start; overflow-y: auto; padding: 1rem; }
+#setup-view { background: var(--setup-theme-color); gap: 1rem; justify-content: flex-start; overflow-y: auto; padding: 1rem; }
 #setup-title { margin: 1rem 0 1.2rem; font-size: 1.8rem; }
 #setup-form { width: min(100%, 36rem); }
 #plan { width: 100%; display: flex; flex-direction: column; gap: .6rem; }
@@ -14,9 +15,9 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; backgr
 .time-wrap .unit { position: absolute; right: .6rem; top: 50%; transform: translateY(-50%); font-size: .9rem; color: #555; pointer-events: none; }
 .row .repeats { width: 4.5rem; font-size: 1.1rem; }
 .row { flex-wrap: wrap; }
-.swatches { position: fixed; z-index: 20; display: grid; grid-template-columns: repeat(3, 2.6rem); gap: .5rem; padding: .6rem; background: #1b5e20; border-radius: .6rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
+.swatches { position: fixed; z-index: 20; display: grid; grid-template-columns: repeat(3, 2.6rem); gap: .5rem; padding: .6rem; background: #707070; border-radius: .6rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); }
 .swatch { width: 2.6rem; height: 2.6rem; padding: 0; border-radius: 50%; border: 2px solid rgba(255, 255, 255, .5); flex: none; }
-.swatch.active { border-color: #fff; box-shadow: 0 0 0 2px #1b5e20, 0 0 0 4px #fff; }
+.swatch.active { border-color: #fff; box-shadow: 0 0 0 2px #3f3f3f, 0 0 0 4px #fff; }
 .swatch.current { width: 2.2rem; height: 2.2rem; border-color: #fff; }
 .swatch.custom { position: relative; overflow: hidden; cursor: pointer; background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
 .swatch.custom input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; padding: 0; }
@@ -25,7 +26,7 @@ html, body { margin: 0; height: 100%; font-family: system-ui, sans-serif; backgr
 .group-head .spacer { flex: 1; }
 .group-body { display: flex; flex-direction: column; gap: .5rem; padding-left: .8rem; }
 .handle { cursor: grab; touch-action: none; user-select: none; font-size: 1.5rem; padding: 0 .3rem; opacity: .8; }
-.dragging { position: fixed; z-index: 10; background: #1b5e20; border-radius: .6rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); pointer-events: none; }
+.dragging { position: fixed; z-index: 10; background: #3d3d3d; border-radius: .6rem; box-shadow: 0 8px 24px rgba(0, 0, 0, .5); pointer-events: none; }
 .dragging .handle { cursor: grabbing; }
 .placeholder { border: 2px dashed rgba(255, 255, 255, .6); border-radius: .6rem; background: rgba(255, 255, 255, .1); }
 .add-row { display: flex; gap: .5rem; margin-top: .8rem; justify-content: center; }
@@ -35,8 +36,10 @@ input { font-size: 1.2rem; padding: .3rem; border-radius: .4rem; border: 0; }
 #stage-name { position: relative; font-size: min(12vw, 16vh); font-weight: 600; line-height: 1.25; text-align: center; max-width: 95vw; overflow-wrap: anywhere; }
 #stage-info { position: relative; margin-top: .2rem; font-size: 1rem; opacity: .8; text-align: center; min-height: 1.2em; }
 #overall { position: absolute; top: 0; left: 0; right: 0; height: 6px; background: #000; z-index: 5; }
-#overall-fill { height: 100%; width: 0; background: #fff; }
-button { font-size: 1.3rem; padding: .6rem 1.6rem; border: 0; border-radius: .5rem; cursor: pointer; background: #fff; color: #1b5e20; }
+#overall-stages { display: flex; height: 100%; }
+#overall-stages > div { min-width: 0; }
+#overall-fill { position: absolute; top: 0; left: 0; height: 100%; width: 0; background: #fff; }
+button { font-size: 1.3rem; padding: .6rem 1.6rem; border: 0; border-radius: .5rem; cursor: pointer; background: #fff; color: #585858; }
 #error { min-height: 1.4em; margin: .5rem 0; color: #ffcdd2; text-align: center; }
 #setup-form { display: flex; flex-direction: column; align-items: stretch; }
 #setup-form > button[type=submit] { align-self: center; display: flex; align-items: center; justify-content: center; width: 4.2rem; height: 4.2rem; padding: 0; border-radius: 50%; }

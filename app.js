@@ -2,6 +2,8 @@
   const $ = (id) => document.getElementById(id);
   const setupView = $('setup-view'), timerView = $('timer-view');
   const themeMeta = document.querySelector('meta[name="theme-color"]');
+  const setupThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--setup-theme-color').trim();
+  themeMeta.content = setupThemeColor;
   const progress = $('progress'), clock = $('clock'), pauseBtn = $('pause');
   const ICONS = {
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
@@ -251,6 +253,16 @@
     return out;
   }
 
+  function renderOverallStages() {
+    const stages = $('overall-stages');
+    stages.replaceChildren(...seq.map((s) => {
+      const segment = document.createElement('div');
+      segment.style.flex = `${s.secs} 1 0`;
+      segment.style.background = s.color;
+      return segment;
+    }));
+  }
+
   let seq = [], idx = 0;
   const info = $('stage-info');
   function loadStage() {
@@ -354,7 +366,7 @@
     setupView.hidden = timer;
     if (!timer) {
       document.documentElement.style.background = '';
-      themeMeta.content = '#2e7d32';
+      themeMeta.content = setupThemeColor;
     }
   }
 
@@ -363,6 +375,7 @@
     seq = flatten();
     if (!seq.length) { $('error').textContent = 'Add a step with a time greater than zero.'; return; }
     $('error').textContent = '';
+    renderOverallStages();
     idx = 0; loadStage();
     show(true); render(); play();
   });
