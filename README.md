@@ -6,7 +6,7 @@ A simple full-screen interval timer that works in any browser, on desktop and ph
 
 ## How to use
 
-1. **Add steps.** Give each step a name, a time and a color.
+1. **Add steps.** Give each step a name and a color. Use the `t`/`r` switch to choose a duration or a number of repetitions.
 2. **Repeat steps** by adding a repeat block, setting how many times it should run and dragging steps into it.
 3. **Reorder** steps and repeat blocks by dragging the handle on the left.
 4. Press **Start**. The timer runs through all steps one after another.
@@ -22,8 +22,9 @@ Just type digits and the time formats itself:
 ## While the timer runs
 
 - The screen shows the step name, the remaining time and your position in the plan.
+- For a repetition step, complete the specified repetitions and press the large confirmation button to continue.
 - The background takes the color of the current step.
-- A thin bar at the top shows the progress of the whole plan.
+- A thin bar at the top shows the progress of the whole plan. Each repetition step occupies the same width as a 30-second step, and progress jumps across it when confirmed.
 - Use the play/pause button to pause and resume, and the stop button to go back to the settings.
 - The screen stays on while the timer is running.
 

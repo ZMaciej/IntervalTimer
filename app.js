@@ -4,7 +4,7 @@
   const themeMeta = document.querySelector('meta[name="theme-color"]');
   const setupThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--setup-theme-color').trim();
   themeMeta.content = setupThemeColor;
-  const progress = $('progress'), clock = $('clock'), pauseBtn = $('pause');
+  const progress = $('progress'), clock = $('clock'), confirmReps = $('confirm-reps'), pauseBtn = $('pause');
   const ICONS = {
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
     pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
@@ -32,19 +32,20 @@
 
   const DEFAULT_COLOR = '#4caf50';
   const PRESETS = ['#4caf50', '#e53935', '#1e88e5', '#fdd835', '#8e24aa', '#fb8c00', '#263238', '#795548'];
-  const stage = (name = '', dg = '500', color = DEFAULT_COLOR) => ({ name, digits: dg, color });
+  const stage = (name = '', dg = '500', color = DEFAULT_COLOR, mode = 'sec', reps = '10') => ({ name, digits: dg, color, mode, reps });
   // Plan <-> URL ("?" + "v<version>~" + body). Version 1 body: stages "name_time_color" joined by ".", groups "N(stage.stage)".
+  // Version 2 adds a fourth stage field: t or r followed by the repetition count.
   // Color is a preset index (omitted for the default) or 6 hex digits. Names are percent-encoded,
   // including the separator characters, so the raw query can be split before decoding.
   const esc = (s) => encodeURIComponent(s).replace(/[.!~*'()_]/g, (c) => '%' + c.charCodeAt(0).toString(16).toUpperCase());
   function encStage(s) {
     const pi = PRESETS.indexOf((s.color || DEFAULT_COLOR).toLowerCase());
     const col = pi === 0 ? '' : pi > 0 ? String(pi) : s.color.replace('#', '');
-    return [esc(s.name), s.digits, col].join('_').replace(/_+$/, '');
+    return [esc(s.name), s.digits, col, (s.mode === 'rep' ? 'r' : 't') + (s.reps == null ? '10' : s.reps)].join('_').replace(/_+$/, '');
   }
-  const encodePlanV1 = (p) => p.map((i) => (i.type === 'group' ? `${i.repeats}(${i.stages.map(encStage).join('.')})` : encStage(i))).join('.');
-  const URL_VERSION = 1;
-  const encodePlan = (p) => `v${URL_VERSION}~${encodePlanV1(p)}`;
+  const encodePlanV2 = (p) => p.map((i) => (i.type === 'group' ? `${i.repeats}(${i.stages.map(encStage).join('.')})` : encStage(i))).join('.');
+  const URL_VERSION = 2;
+  const encodePlan = (p) => `v${URL_VERSION}~${encodePlanV2(p)}`;
 
   function splitTop(str) {
     const out = [];
@@ -57,24 +58,26 @@
     out.push(cur);
     return out;
   }
-  function decStage(str) {
-    const [n = '', d = '', c = ''] = str.split('_');
+  function decStage(str, version) {
+    const [n = '', d = '', c = '', repField = ''] = str.split('_');
     const color = /^[0-9a-f]{6}$/i.test(c) ? '#' + c.toLowerCase() : PRESETS[+c] || DEFAULT_COLOR;
-    return stage(decodeURIComponent(n).slice(0, 100), digits(d), color);
+    if (version === 2 && !/^[tr]\d{0,6}$/.test(repField)) throw new Error('invalid repetition mode');
+    return stage(decodeURIComponent(n).slice(0, 100), digits(d), color,
+      version === 2 && repField[0] === 'r' ? 'rep' : 'sec', version === 2 ? digits(repField.slice(1)) : '10');
   }
-  const DECODERS = { 1: decodePlanV1 };
+  const DECODERS = { 1: (str) => decodePlanBody(str, 1), 2: (str) => decodePlanBody(str, 2) };
   function decodePlan(query) {
     const m = query.match(/^v(\d+)~(.*)$/);
     const decoder = m && DECODERS[+m[1]];
     if (!decoder) throw new Error('unknown version');
     return decoder(m[2]);
   }
-  function decodePlanV1(str) {
+  function decodePlanBody(str, version) {
     if (!str) throw new Error('empty');
     return splitTop(str).map((tok) => {
       const g = tok.match(/^(\d+)\((.*)\)$/);
-      if (!g) return { type: 'stage', ...decStage(tok) };
-      return { type: 'group', repeats: Math.min(999, Math.max(1, +g[1])), stages: g[2] ? g[2].split('.').map(decStage) : [] };
+      if (!g) return { type: 'stage', ...decStage(tok, version) };
+      return { type: 'group', repeats: Math.min(999, Math.max(1, +g[1])), stages: g[2] ? g[2].split('.').map((s) => decStage(s, version)) : [] };
     });
   }
 
@@ -175,12 +178,31 @@
   function stageRow(st, onRemove) {
     const name = el('input', { className: 'name', type: 'text', placeholder: 'Step name', value: st.name });
     name.addEventListener('input', () => { st.name = name.value; save(); });
-    const time = el('input', { className: 'time', type: 'text', inputMode: 'numeric', autocomplete: 'off', maxLength: 9, value: formatDigits(st.digits) });
+    const time = el('input', { className: 'time', type: 'text', inputMode: 'numeric', autocomplete: 'off', maxLength: 9 });
     const unit = el('span', { className: 'unit' });
-    const setUnit = () => { unit.textContent = st.digits.length <= 2 ? 's' : st.digits.length <= 4 ? 'min' : 'h'; };
-    time.addEventListener('input', () => { st.digits = digits(time.value); time.value = formatDigits(st.digits); setUnit(); save(); });
-    setUnit();
-    const timeWrap = el('span', { className: 'time-wrap', title: 'Type digits: 50 = 50 s, 500 = 5:00 min, 50000 = 5:00:00 h' }, time, unit);
+    const timeWrap = el('span', { className: 'time-wrap' }, time, unit);
+    const mode = el('button', { type: 'button', className: 'mode-switch' });
+    const modeLabel = el('span');
+    mode.append(modeLabel);
+    const updateMode = () => {
+      const isRep = st.mode === 'rep';
+      modeLabel.textContent = isRep ? 'r' : 't';
+      mode.setAttribute('aria-label', isRep ? 'Repetitions mode; switch to time' : 'Time mode; switch to repetitions');
+      mode.setAttribute('aria-pressed', String(isRep));
+      mode.title = mode.getAttribute('aria-label');
+      time.value = isRep ? (st.reps == null ? '10' : st.reps) : formatDigits(st.digits);
+      time.maxLength = isRep ? 6 : 9;
+      time.setAttribute('aria-label', isRep ? 'Number of repetitions' : 'Step duration');
+      timeWrap.title = isRep ? 'Number of repetitions' : 'Type digits: 50 = 50 s, 500 = 5:00 min, 50000 = 5:00:00 h';
+      unit.textContent = isRep ? 'rep' : st.digits.length <= 2 ? 's' : st.digits.length <= 4 ? 'min' : 'h';
+    };
+    mode.addEventListener('click', () => { st.mode = st.mode === 'rep' ? 'sec' : 'rep'; updateMode(); save(); });
+    time.addEventListener('input', () => {
+      if (st.mode === 'rep') st.reps = digits(time.value);
+      else st.digits = digits(time.value);
+      updateMode(); save();
+    });
+    updateMode();
     time.addEventListener('focus', () => time.select());
     const cur = () => (st.color || DEFAULT_COLOR).toLowerCase();
     const toggle = el('button', { type: 'button', className: 'swatch current', title: 'Step color' });
@@ -213,7 +235,9 @@
       swatches.style.top = Math.max(4, Math.min(e.clientY, innerHeight - h - 4)) + 'px';
     });
     mark();
-    const row = el('div', { className: 'row' }, handle(() => row), name, timeWrap, toggle, btn('✕', onRemove, 'icon', 'Remove'), swatches);
+    const controls = el('div', { className: 'row-controls' }, timeWrap, mode, toggle, btn('✕', onRemove, 'icon', 'Remove'));
+    const content = el('div', { className: 'row-content' }, name, controls);
+    const row = el('div', { className: 'row' }, handle(() => row), content, swatches);
     row._ref = st;
     return row;
   }
@@ -245,7 +269,12 @@
 
   function flatten() {
     const out = [];
-    const add = (st, label) => { const secs = toSecs(st.digits); if (secs > 0) out.push({ name: st.name, secs, label, color: st.color || DEFAULT_COLOR }); };
+    const add = (st, label) => {
+      const isRep = st.mode === 'rep';
+      const reps = +(st.reps == null ? '10' : st.reps);
+      const secs = isRep ? 30 : toSecs(st.digits);
+      if (isRep ? reps > 0 : secs > 0) out.push({ name: st.name, secs, label, color: st.color || DEFAULT_COLOR, isRep, reps });
+    };
     plan.forEach((item) => {
       if (item.type === 'stage') { add(item, ''); return; }
       for (let r = 1; r <= item.repeats; r++) item.stages.forEach((st) => add(st, `Repeat ${r}/${item.repeats}`));
@@ -268,6 +297,11 @@
   function loadStage() {
     const s = seq[idx];
     total = remaining = s.secs * 1000;
+    timerView.classList.toggle('repetition-mode', s.isRep);
+    clock.hidden = s.isRep;
+    confirmReps.hidden = !s.isRep;
+    confirmReps.textContent = `Confirm ${s.reps} reps`;
+    confirmReps.disabled = false;
     timerView.style.background = s.color;
     document.documentElement.style.background = s.color;
     themeMeta.content = s.color;
@@ -283,14 +317,20 @@
   }
 
   function render() {
-    clock.textContent = format(remaining);
+    const s = seq[idx];
+    if (!s.isRep) clock.textContent = format(remaining);
     progress.style.width = (100 * (1 - remaining / total)) + '%';
     if (seq.length) {
       const all = seq.reduce((a, s) => a + s.secs, 0) * 1000;
       const done = seq.slice(0, idx).reduce((a, s) => a + s.secs, 0) * 1000 + (total - remaining);
       $('overall-fill').style.width = (100 * done / all) + '%';
     }
-    document.title = format(remaining) + ' – Interval Timer';
+    document.title = (s.isRep ? `${s.reps} reps` : format(remaining)) + ' – Interval Timer';
+  }
+
+  function advance() {
+    if (idx + 1 < seq.length) { idx++; loadStage(); render(); if (!seq[idx].isRep) { last = performance.now(); raf = requestAnimationFrame(tick); } }
+    else { running = false; releaseWake(); confirmReps.disabled = true; setPauseIcon('play', 'Restart'); }
   }
 
   function tick(now) {
@@ -298,8 +338,7 @@
     last = now;
     render();
     if (remaining > 0) raf = requestAnimationFrame(tick);
-    else if (idx + 1 < seq.length) { idx++; loadStage(); render(); last = now; raf = requestAnimationFrame(tick); }
-    else { running = false; releaseWake(); setPauseIcon('play', 'Restart'); }
+    else advance();
   }
 
   let wakeLock = null, wakePending = false, fallbackVideo = null;
@@ -354,9 +393,10 @@
 
   function play() {
     running = true; setPauseIcon('pause', 'Pause');
+    confirmReps.disabled = false;
     requestWake();
     last = performance.now();
-    raf = requestAnimationFrame(tick);
+    if (!seq[idx].isRep) raf = requestAnimationFrame(tick);
   }
 
   function stop() { cancelAnimationFrame(raf); running = false; releaseWake(); }
@@ -373,7 +413,7 @@
   $('setup-form').addEventListener('submit', (e) => {
     e.preventDefault();
     seq = flatten();
-    if (!seq.length) { $('error').textContent = 'Add a step with a time greater than zero.'; return; }
+    if (!seq.length) { $('error').textContent = 'Add a step with a time or repetition count greater than zero.'; return; }
     $('error').textContent = '';
     renderOverallStages();
     idx = 0; loadStage();
@@ -381,9 +421,16 @@
   });
 
   pauseBtn.addEventListener('click', () => {
-    if (running) { stop(); setPauseIcon('play', 'Resume'); }
+    if (running) { stop(); confirmReps.disabled = true; setPauseIcon('play', 'Resume'); }
     else if (remaining <= 0) { idx = 0; loadStage(); render(); play(); }
     else play();
+  });
+
+  confirmReps.addEventListener('click', () => {
+    if (!running || !seq[idx].isRep) return;
+    remaining = 0;
+    render();
+    advance();
   });
 
   $('back').addEventListener('click', () => { stop(); document.title = 'Interval Timer'; show(false); });
