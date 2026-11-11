@@ -8,7 +8,81 @@
   const ICONS = {
     play: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg>',
     pause: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>',
+    soundOn: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm12.5 3a4.5 4.5 0 0 0-2-3.75v7.5a4.5 4.5 0 0 0 2-3.75zM13.5 3.5v2.05a7 7 0 0 1 0 12.9v2.05a9 9 0 0 0 0-17z"/></svg>',
+    soundOff: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3zm11.59-.41L17 11l2.41-2.41L20.83 10 18.41 12l2.42 2-1.42 1.41L17 13l-2.41 2.41L13.17 14l2.42-2-2.42-2z"/></svg>',
   };
+  let soundEnabled = false;
+  try { soundEnabled = localStorage.getItem('soundEnabled') === 'true'; }
+  catch (e) { console.warn('Could not load sound setting:', e); }
+  let audioContext = null, soundGeneration = 0;
+  const scheduledSounds = new Set();
+  function cancelSounds() {
+    soundGeneration++;
+    scheduledSounds.forEach((oscillator) => oscillator.stop());
+    scheduledSounds.clear();
+  }
+  function prepareAudio() {
+    try {
+      if (!audioContext) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) throw new Error('Web Audio is not supported');
+        audioContext = new AudioContext();
+      }
+      return audioContext.resume();
+    } catch (e) {
+      return Promise.reject(e);
+    }
+  }
+  function scheduleSounds() {
+    const generation = soundGeneration;
+    prepareAudio().then(() => {
+      if (generation !== soundGeneration || !soundEnabled || !running || seq[idx].isRep) return;
+      const timeLeft = Math.max(0, remaining - (performance.now() - last));
+      if (!timeLeft) return;
+      const cues = [3000, 2000, 1000, 0];
+      cues.forEach((cue) => {
+        if (cue >= timeLeft) return;
+        const start = audioContext.currentTime + (timeLeft - cue) / 1000;
+        const duration = cue === 0 ? .5 : .12;
+        const oscillator = audioContext.createOscillator();
+        const gain = audioContext.createGain();
+        oscillator.frequency.value = cue === 0 ? 880 : 660;
+        gain.gain.setValueAtTime(.15, start);
+        gain.gain.setValueAtTime(.15, start + duration - .02);
+        gain.gain.linearRampToValueAtTime(0, start + duration);
+        oscillator.connect(gain);
+        gain.connect(audioContext.destination);
+        scheduledSounds.add(oscillator);
+        oscillator.onended = () => { scheduledSounds.delete(oscillator); oscillator.disconnect(); gain.disconnect(); };
+        oscillator.start(start);
+        oscillator.stop(start + duration);
+      });
+    }).catch((e) => {
+      console.error('Could not play timer sounds:', e);
+      alert('Could not enable timer sounds. Check your browser audio settings.');
+    });
+  }
+  const soundButtons = document.querySelectorAll('.sound-toggle');
+  function renderSoundButtons() {
+    soundButtons.forEach((button) => {
+      button.innerHTML = soundEnabled ? ICONS.soundOn : ICONS.soundOff;
+      button.setAttribute('aria-pressed', String(soundEnabled));
+      button.title = soundEnabled ? 'Sound on' : 'Sound off';
+    });
+  }
+  soundButtons.forEach((button) => button.addEventListener('click', () => {
+    soundEnabled = !soundEnabled;
+    renderSoundButtons();
+    try { localStorage.setItem('soundEnabled', String(soundEnabled)); }
+    catch (e) { console.warn('Could not save sound setting:', e); alert('Could not save the sound setting. It will only apply until the page is closed.'); }
+    if (!soundEnabled) cancelSounds();
+    else if (running && !seq[idx].isRep) scheduleSounds();
+    else prepareAudio().catch((e) => {
+      console.error('Could not enable timer sounds:', e);
+      alert('Could not enable timer sounds. Check your browser audio settings.');
+    });
+  }));
+  renderSoundButtons();
   function setPauseIcon(icon, label) {
     pauseBtn.innerHTML = ICONS[icon];
     pauseBtn.title = label;
@@ -329,7 +403,15 @@
   }
 
   function advance() {
-    if (idx + 1 < seq.length) { idx++; loadStage(); render(); if (!seq[idx].isRep) { last = performance.now(); raf = requestAnimationFrame(tick); } }
+    soundGeneration++;
+    if (idx + 1 < seq.length) {
+      idx++; loadStage(); render();
+      if (!seq[idx].isRep) {
+        last = performance.now();
+        if (soundEnabled) scheduleSounds();
+        raf = requestAnimationFrame(tick);
+      }
+    }
     else { running = false; releaseWake(); confirmReps.disabled = true; setPauseIcon('play', 'Restart'); }
   }
 
@@ -396,10 +478,18 @@
     confirmReps.disabled = false;
     requestWake();
     last = performance.now();
-    if (!seq[idx].isRep) raf = requestAnimationFrame(tick);
+    if (!seq[idx].isRep) {
+      if (soundEnabled) scheduleSounds();
+      raf = requestAnimationFrame(tick);
+    } else if (soundEnabled) {
+      prepareAudio().catch((e) => {
+        console.error('Could not enable timer sounds:', e);
+        alert('Could not enable timer sounds. Check your browser audio settings.');
+      });
+    }
   }
 
-  function stop() { cancelAnimationFrame(raf); running = false; releaseWake(); }
+  function stop() { cancelAnimationFrame(raf); cancelSounds(); running = false; releaseWake(); }
 
   function show(timer) {
     timerView.hidden = !timer;

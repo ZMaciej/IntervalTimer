@@ -11,6 +11,8 @@ A simple full-screen interval timer that works in any browser, on desktop and ph
 3. **Reorder** steps and repeat blocks by dragging the handle on the left.
 4. Press **Start**. The timer runs through all steps one after another.
 
+The sound button is available in both views and remembers its setting in the browser. When enabled, timed steps end with up to three short beeps, one per second, followed by a long beep. Shorter steps have only as many short beeps as fit before the end; repetition steps are silent.
+
 ## Entering time
 
 Just type digits and the time formats itself:

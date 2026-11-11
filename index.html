@@ -17,7 +17,10 @@
         <button id="add-group" type="button" class="secondary" title="Add a block of steps that repeats">+ Repeat</button>
       </div>
       <p id="error" role="alert"></p>
-      <button type="submit" class="start" aria-label="Start timer" title="Start timer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+      <div class="start-controls">
+        <button type="submit" class="start" aria-label="Start timer" title="Start timer"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z"/></svg></button>
+        <button type="button" class="sound-toggle" aria-label="Sound" aria-pressed="false" title="Sound off"></button>
+      </div>
     </form>
   </main>
 
@@ -33,6 +36,7 @@
     <div class="controls">
       <button id="pause" type="button" aria-label="Pause" title="Pause"></button>
       <button id="back" type="button" aria-label="Stop and return to settings" title="Stop"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg></button>
+      <button type="button" class="sound-toggle" aria-label="Sound" aria-pressed="false" title="Sound off"></button>
     </div>
   </main>
   <script src="app.js"></script>
