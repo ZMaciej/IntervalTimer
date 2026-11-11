@@ -106,7 +106,7 @@
 
   const DEFAULT_COLOR = '#4caf50';
   const PRESETS = ['#4caf50', '#e53935', '#1e88e5', '#fdd835', '#8e24aa', '#fb8c00', '#263238', '#795548'];
-  const stage = (name = '', dg = '500', color = DEFAULT_COLOR, mode = 'sec', reps = '10') => ({ name, digits: dg, color, mode, reps });
+  const stage = (name = '', dg = '20', color = DEFAULT_COLOR, mode = 'sec', reps = '10') => ({ name, digits: dg, color, mode, reps });
   // Plan <-> URL ("?" + "v<version>~" + body). Version 1 body: stages "name_time_color" joined by ".", groups "N(stage.stage)".
   // Version 2 adds a fourth stage field: t or r followed by the repetition count.
   // Color is a preset index (omitted for the default) or 6 hex digits. Names are percent-encoded,
